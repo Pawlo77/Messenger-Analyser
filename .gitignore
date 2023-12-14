@@ -2,6 +2,9 @@
 data*
 output*
 
+# testing environment
+bin.ipynb
+
 # macos file system
 *.DS_Store
 
