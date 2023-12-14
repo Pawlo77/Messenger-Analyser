@@ -13,9 +13,15 @@ QUERIES = (CountMessagesQuery(),)
 class QueryExecutor:
     def __init__(self, data_file_path: str = None) -> None:
         if data_file_path is None:
+            config_path = Config.get("output_dir_path")
+            if config_path.startswith("/"):
+                data_file_path = config_path
+            else:
+                data_file_path = os.path.join(
+                    os.path.dirname(__file__), Config.get("output_dir_path")
+                )
             data_file_path = os.path.join(
-                os.path.dirname(__file__),
-                Config.get("output_dir_path"),
+                data_file_path,
                 Config.get("prefix") + "_" + "conversations.json",
             )
 
