@@ -33,7 +33,10 @@ options:
   --queries QUERIES     Indexes of queries to be executed. By default will execute all queries.
 ```
 
-For --queries indexes refer to [QUERIES](./query_manager.py) constant - query index in this call is index of desired query in that tuple.
+For --queries indexes refer to [QUERIES](./query_manager.py) constant - query index in this call is index of desired query in that tuple. --input_dir_path should lead to directory with unzipped messenger data folders in .json format (no need to delete no-json files, just put here exacly what you've downloaded from facebook).
+
+> Warning: file processing may take very long, depending on hardware and number of conversations. Be prepared to wait for around 2 hours on average.
+
 Example call:
 ```bash
 python main.py --input_dir /Users/user/Desktop/my_messenger_data --output_dir /Users/user/Desktop/results --n_threads 4 --prefix p --defalut_language en --verbose 1 --preprocess 1
