@@ -4,10 +4,11 @@ import json
 from typing import List
 
 from setup import Config
-from queries import CountMessagesQuery
+from queries import CountMessagesQuery, MessagesOnTime, Top10withoutGroups
 
 
-QUERIES = (CountMessagesQuery(),)
+
+QUERIES = (CountMessagesQuery(), MessagesOnTime(), Top10withoutGroups())
 
 
 class QueryExecutor:
