@@ -182,7 +182,31 @@ class Top10withoutGroups(Query):
         df = df.sort_values(by='count', ascending=False).head(10)
 
         return df
+class MostCommonStrings(Query):
+    def __init__(
+        self
+    ) -> None:
+        super().__init__(id="mostcommonstrings", result_extension=".csv")
+    
+    def execute(self, data: List[tuple], **kwargs) -> Any:
+        df_dict = {}
+        with open(Config.get("output_dir_path") + "/" + Config.get("prefix") + '_users_reversed.json', 'r', encoding='utf-8') as file:
+            data_dict = json.load(file)
+        for line in data:
+            
+            user_id, message = line[-3], line[-2]
+            if user_id != Config.get("user_id"):
+                continue
+            for i in range(len(message) - 1):
+                pair_user = message[i] + " " +  message[i + 1], user_id
+                if pair_user in df_dict:
+                    df_dict[pair_user] += 1
+                else: 
+                    df_dict[pair_user] =  1
+        df = pd.DataFrame([(data_dict.get(key[1])[0], key[0], value) for key, value in df_dict.items()], columns=['user', 'pair', 'count'])
+        df = df.sort_values('count', ascending=False)
+        return df
+    
 
 # najczestrze słowa idące w parze/trójce - pewniak
 # długość wiadomości
-# top 10 osob bez grup
