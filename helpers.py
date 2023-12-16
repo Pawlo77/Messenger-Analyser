@@ -15,11 +15,9 @@ class Query:
         self,
         id: str,
         result_extension: str = ".csv",
-        timestamp_group_format: str = "%Y-%m-%d",
     ) -> None:
         self.id = id
         self.path = f"{Config.get('prefix')}_query_{id}{result_extension}"
-        self.timestamp_group_format = timestamp_group_format
 
     def __call__(self, data: List[tuple], **kwargs):
         logging.info(f"Query_{self.id}:Execution started.")
@@ -33,9 +31,8 @@ class Query:
         return data
 
     def get_date(self, timestamp: int):
-        return datetime.fromtimestamp(timestamp / 1000).strftime(
-            self.timestamp_group_format
-        )
+        timestamp = timestamp / 1000
+        return datetime.utcfromtimestamp(timestamp).replace(second= 0, microsecond= 0)
 
     @staticmethod
     def save(result: Any, path: str) -> None:
@@ -48,14 +45,11 @@ class Query:
 
         _, extension = os.path.splitext(path)
 
-        match extension:
-            case ".csv":
-                if not isinstance(result, pd.DataFrame):
-                    result = pd.DataFrame(result)
-                result.to_csv(path, index=None)
-            case _:
-                with open(path, "w") as file:
-                    return json.dump(result, file, ensure_ascii=False)
+           
+        if not isinstance(result, pd.DataFrame):
+            result = pd.DataFrame(result)
+        result.to_csv(path, index=None)
+            
 
     @staticmethod
     def get_groups(data: List[tuple]):
@@ -66,7 +60,7 @@ class Query:
             else:
                 conversation_users[conversation_id] = set([user_id])
         return set(key for key, value in conversation_users.items() if len(value) > 2)
-
+    
     @staticmethod
     def reverse_df(
         df: pd.DataFrame, by: str = "date", sort: bool = True
