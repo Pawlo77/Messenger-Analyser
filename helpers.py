@@ -24,7 +24,7 @@ class Query:
     def __call__(self, data: List[tuple], **kwargs):
         logging.info(f"Query_{self.id}:Execution started.")
         result = self.execute(data, **kwargs)
-        Query.save(result, self.path, **kwargs)
+        Query.save(result, self.path)
         logging.info(
             f"Query_{self.id}:Execution finished, results saved to {self.path}."
         )
@@ -38,7 +38,7 @@ class Query:
         )
 
     @staticmethod
-    def save(result: Any, path: str, **kwargs) -> None:
+    def save(result: Any, path: str) -> None:
         if not os.path.isabs(path):
             path = os.path.join(Config.get("output_dir_path"), path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -52,10 +52,20 @@ class Query:
             case ".csv":
                 if not isinstance(result, pd.DataFrame):
                     result = pd.DataFrame(result)
-                result.to_csv(path, index=None, **kwargs)
+                result.to_csv(path, index=None)
             case _:
                 with open(path, "w") as file:
                     return json.dump(result, file, ensure_ascii=False)
+
+    @staticmethod
+    def get_groups(data: List[tuple]):
+        conversation_users = {}
+        for conversation_id, user_id, _, timestamp in data:
+            if conversation_id in conversation_users.keys():
+                conversation_users[conversation_id].add(user_id)
+            else:
+                conversation_users[conversation_id] = set([user_id])
+        return set(key for key, value in conversation_users.items() if len(value) > 2)
 
     @staticmethod
     def reverse_df(
