@@ -62,6 +62,13 @@ ARGUMENTS = (
         False,
         list,
     ),
+    (
+        "user_id",
+        "d_1",
+        "Index of user in query 3. By default d_1",
+        False,
+        str,
+    ),
 )
 
 

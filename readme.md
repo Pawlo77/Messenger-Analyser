@@ -31,6 +31,7 @@ options:
   --preprocess PREPROCESS
                         1 - preprocessing included, 0 (default) for just query execution.
   --queries QUERIES     Indexes of queries to be executed. By default will execute all queries.
+  --user_id USER_ID     User ID, that we want to use in queries, for example for QUERY nr 3
 ```
 
 For --queries indexes refer to [QUERIES](./query_manager.py) constant - query index in this call is index of desired query in that tuple. --input_dir_path should lead to directory with unzipped messenger data folders in .json format (no need to delete no-json files, just put here exacly what you've downloaded from facebook).
@@ -43,7 +44,7 @@ python main.py --input_dir /Users/user/Desktop/my_messenger_data --output_dir /U
 ```
 Or just for preprocessing query of index 0:
 ```bash
-python main.py --input_dir /Users/user/Desktop/my_messenger_data --output_dir /Users/user/Desktop/results --queries 0 
+python main.py --output_dir /Users/user/Desktop/results --prefix "prefix" --queries 0 --user_id "user_id"
 ```
 
 > Note: num_threads affects only data cleaning performance, queries are not executed in parallel.
