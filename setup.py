@@ -64,18 +64,18 @@ ARGUMENTS = (
     ),
     (
         "user_id",
-        "d_1",
-        "Index of user in query 3. By default d_1",
+        "all",
+        "Index of user in query 3. By default will run for all",
         False,
         str,
     ),
     (
         "words_count",
         2,
-        "How long a sequence of words we want to count for the query MostCommonStrings, 1-4 - posiblilities",
+        "How long a sequence of words we want to count for the query MostCommonStrings.",
         False,
         int,
-    )
+    ),
 )
 
 
@@ -107,12 +107,22 @@ class Config:
     def set(*args: List[Tuple[str, Any]], **kwargs):
         kwargs = Config.map_args_to_kwargs(*args, **kwargs)
         Config.assert_str(**kwargs)
+        Config.check(*args)
         Config.config.__dict__.update(kwargs)
+
+    @staticmethod
+    def check(*args: List[Tuple[str, Any]]):
+        pass
+        # for name, val in args:
+        #     if name == "words_count":
+        #         assert val in [1, 2, 3, 4], "Words count must be in [1, 2, 3, 4]"
 
     @staticmethod
     def update(*args: List[Tuple[str, Any]], **kwargs):
         kwargs = Config.map_args_to_kwargs(*args, **kwargs)
         Config.assert_str(**kwargs)
+        Config.check(*args)
+
         for name, value in kwargs.items():
             if name in Config.config.__dict__.keys():
                 Config.config.__dict__[name] = value

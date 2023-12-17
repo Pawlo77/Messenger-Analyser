@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import warnings
 import pandas as pd
 
 from typing import Any, List
@@ -10,17 +11,49 @@ from datetime import datetime
 from setup import Config
 
 
+def encode(*args: List[Any]) -> List[Any]:
+    args = list(args)
+    for i in range(len(args)):
+        try:
+            if isinstance(args[i], str):
+                args[i] = args[i].encode("latin-1").decode("utf-8", "ignore")
+        except Exception as e:
+            warnings.warn(f"Could not encode: {args[i]} - {e}")
+
+    return args
+
+
+# returns (name, gender)
+encode_user = (
+    lambda user_id, users: users[user_id]
+    if user_id in users.keys()
+    else ("unknown", "unknown")
+)
+# returns (is_group, number_of_participants)
+encode_group = (
+    lambda conversation_id, groups: (
+        len(groups[conversation_id]) > 2,
+        len(groups[conversation_id]),
+    )
+    if conversation_id in groups.keys()
+    else ("unknown", "unknown")
+)
+
+
 class Query:
     def __init__(
         self,
         id: str,
         result_extension: str = ".csv",
+        timestamp_group_format: str = "%Y-%m-%d %H:00",
     ) -> None:
         self.id = id
         self.path = f"{Config.get('prefix')}_query_{id}{result_extension}"
+        self.timestamp_group_format = timestamp_group_format
 
     def __call__(self, data: List[tuple], **kwargs):
         logging.info(f"Query_{self.id}:Execution started.")
+        assert len(data) > 0, "Empty data list."
         result = self.execute(data, **kwargs)
         Query.save(result, self.path)
         logging.info(
@@ -31,8 +64,14 @@ class Query:
         return data
 
     def get_date(self, timestamp: int):
-        timestamp = timestamp / 1000
-        return datetime.utcfromtimestamp(timestamp).replace(second= 0, microsecond= 0)
+        return datetime.fromtimestamp(timestamp / 1000).strftime(
+            self.timestamp_group_format
+        )
+
+    def get_from_kw(self, kw: dict, name: str, assert_val: Any = None) -> Any:
+        val = kw.pop(name, None)
+        assert val is not assert_val, f"Query: {self.id} requires {name} to work."
+        return val
 
     @staticmethod
     def save(result: Any, path: str) -> None:
@@ -45,22 +84,25 @@ class Query:
 
         _, extension = os.path.splitext(path)
 
-           
-        if not isinstance(result, pd.DataFrame):
-            result = pd.DataFrame(result)
-        result.to_csv(path, index=None)
-            
+        if extension == ".csv":
+            if not isinstance(result, pd.DataFrame):
+                result = pd.DataFrame(result)
+            result.to_csv(path, index=None)
+        else:
+            with open(path, "w") as file:
+                return json.dump(result, file, ensure_ascii=False)
 
     @staticmethod
-    def get_groups(data: List[tuple]):
+    def get_groups(data: List[tuple]) -> dict:
         conversation_users = {}
         for conversation_id, user_id, _, timestamp in data:
             if conversation_id in conversation_users.keys():
                 conversation_users[conversation_id].add(user_id)
             else:
                 conversation_users[conversation_id] = set([user_id])
-        return set(key for key, value in conversation_users.items() if len(value) > 2)
-    
+        # return set(key for key, value in conversation_users.items() if len(value) > 2)
+        return conversation_users
+
     @staticmethod
     def reverse_df(
         df: pd.DataFrame, by: str = "date", sort: bool = True

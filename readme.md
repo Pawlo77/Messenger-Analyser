@@ -12,26 +12,43 @@ python main.py -h
 ```
 
 ```
-usage: main.py [-h] [--input_dir_path INPUT_DIR_PATH] [--output_dir_path OUTPUT_DIR_PATH] [--n_threds N_THREDS] [--prefix PREFIX] [--default_language DEFAULT_LANGUAGE] [--verbose VERBOSE]
-               [--preprocess PREPROCESS] [--queries QUERIES]
+usage: main.py [-h] [--input_dir_path INPUT_DIR_PATH]
+               [--output_dir_path OUTPUT_DIR_PATH] [--n_threds N_THREDS]
+               [--prefix PREFIX] [--default_language DEFAULT_LANGUAGE]
+               [--verbose VERBOSE] [--preprocess PREPROCESS]
+               [--queries QUERIES] [--user_id USER_ID]
+               [--words_count WORDS_COUNT]
 
-Facebook data formatter. Drops photos, encodes all found users into unique ids, performs messages lemmatization and links and emoji encodings. Can Tokenize message contents.
+Facebook data formatter. Drops photos, encodes all found users into unique
+ids, performs messages lemmatization and links and emoji encodings. Can
+Tokenize message contents.
 
 options:
   -h, --help            show this help message and exit
   --input_dir_path INPUT_DIR_PATH
-                        Directory holding folders containing facebook data in json format. Defaults to 'data' directory in setup's folder.
+                        Directory holding folders containing facebook data in
+                        json format. Defaults to 'data' directory in setup's
+                        folder.
   --output_dir_path OUTPUT_DIR_PATH
-                        Directory to which output should be written. Defaults to 'output' directory in setup's folder.
-  --n_threds N_THREDS   Number of threads to be used for processing. Defaults to 8.
+                        Directory to which output should be written. Defaults
+                        to 'output' directory in setup's folder.
+  --n_threds N_THREDS   Number of threads to be used for processing. Defaults
+                        to 8.
   --prefix PREFIX       Prefix added to each identifier. Defaults to '0'.
   --default_language DEFAULT_LANGUAGE
-                        If program will be unable to detect language it will use that. Defaults to 'pl.
-  --verbose VERBOSE     Verbosity mode - 0 for None (default), 1 for logging without warnings, 2 for all.
+                        If program will be unable to detect language it will
+                        use that. Defaults to 'pl.
+  --verbose VERBOSE     Verbosity mode - 0 for None (default), 1 for logging
+                        without warnings, 2 for all.
   --preprocess PREPROCESS
-                        1 - preprocessing included, 0 (default) for just query execution.
-  --queries QUERIES     Indexes of queries to be executed. By default will execute all queries.
-  --user_id USER_ID     User ID, that we want to use in queries, for example for QUERY nr 3
+                        1 - preprocessing included, 0 (default) for just query
+                        execution.
+  --queries QUERIES     Indexes of queries to be executed. By default will
+                        execute all queries.
+  --user_id USER_ID     Index of user in query 3. By default d_1
+  --words_count WORDS_COUNT
+                        How long a sequence of words we want to count for the
+                        query MostCommonStrings.
 ```
 
 For --queries indexes refer to [QUERIES](./query_manager.py) constant - query index in this call is index of desired query in that tuple. --input_dir_path should lead to directory with unzipped messenger data folders in .json format (no need to delete no-json files, just put here exacly what you've downloaded from facebook).

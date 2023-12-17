@@ -13,7 +13,7 @@ from langdetect import detect
 from typing import List, Any, Tuple
 
 from setup import Config
-from helpers import GenderPredictorForPolishNames, Counter
+from helpers import GenderPredictorForPolishNames, Counter, encode
 
 
 class CleaningExecutor:
@@ -155,11 +155,7 @@ class CleaningExecutor:
     def encode_participants(participants: List[dict]) -> dict:
         participants_map = {}
         for participant in participants:
-            name = (
-                participant.get("name", "unknown")
-                .encode("latin-1")
-                .decode("utf-8", "ignore")
-            )
+            name = encode(participant.get("name", "unknown"))[0]
             if name == "unknown":
                 warnings.warn(f"Unknown participant.")
 
@@ -213,11 +209,7 @@ class CleaningExecutor:
 
             res[i] = (
                 key,
-                CleaningExecutor.clean_content(
-                    message.get("content", "")
-                    .encode("latin-1")
-                    .decode("utf-8", "ignore")
-                ),
+                CleaningExecutor.clean_content(encode(message.get("content", ""))[0]),
                 message.get("timestamp_ms", None),
             )
         return res
@@ -228,7 +220,7 @@ class CleaningExecutor:
         data = CleaningExecutor.read_json(path)
         assert isinstance(data, dict), f"{path}: read data is {type(data)}"
 
-        title = data.pop("title", "").encode("latin-1").decode("utf-8", "ignore")
+        title = encode(data.pop("title", ""))[0]
         if title == "":
             warnings.warn(f"File {path} has no title")
             return

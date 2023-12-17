@@ -8,7 +8,7 @@ from queries import (
     CountMessagesQuery,
     MostCommonStrings,
     TimeToResponde,
-    MostCommonEmoji
+    MostCommonEmoji,
 )
 from helpers import Query
 
@@ -17,7 +17,7 @@ QUERIES = (
     CountMessagesQuery(),
     MostCommonStrings(),
     TimeToResponde(),
-    MostCommonEmoji()
+    MostCommonEmoji(),
 )
 
 
