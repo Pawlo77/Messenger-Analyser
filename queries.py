@@ -1,6 +1,8 @@
 import emoji
 import pandas as pd
 
+from datetime import datetime
+
 from typing import Any, List
 from setup import Config
 from helpers import Query, encode_user, encode_group, encode
@@ -105,10 +107,14 @@ class MostCommonStrings(Query):
 class TimeToResponde(Query):
     """
     Returns data frame with columns:
-    sender - user_id, not root,
+    sender - user_id, not root - who sent the message
     time_send - time that user sent last massege before response
     time_response - time that root sent first message on response
     delta_times - difference between last message sent to first response
+
+    In other words:
+    // Whom you replied to - when someone wrote - when you replied - how soon you replied //
+    from perspective of --user_id
     """
 
     def __init__(self) -> None:
@@ -120,6 +126,8 @@ class TimeToResponde(Query):
 
     def execute(self, data: List[tuple], **kwargs) -> Any:
         groups = self.get_from_kw(kwargs, "groups", None)
+        root_id = Config.get("user_id")
+        assert root_id != "all", f"Query {self.id} requires specified --user_id flag."
 
         data = [
             [conversation_id, user_id, message, self.get_date(timestamp)]
@@ -132,44 +140,36 @@ class TimeToResponde(Query):
             )
         )
 
-        root_id = Config.get("user_id")
-        assert len(root_id) > 0
+        sender = None
+        last_time = None
         df_dict = {}
-        get_entry = lambda conversation_id: conversation_id in groups
         for line in data:
-            conversation_id, user_id, date = line[-4], line[-3], line[-1]
-            if get_entry(conversation_id):
+            conversation_id, user_id, date = line[0], line[1], line[3]
+            if len(groups[conversation_id]) > 2:
                 continue
-            # responde time
-            if len(queue) != 0:  # if we have message from root
-                if (
-                    user_id != queue[0] and user_id != root_id
-                ):  # if user isn't root, calculate delta times and save to temp. dict
-                    delta = queue[1] - date
-                    key = user_id, date
-                    df_dict[key] = queue[1], delta
-                    queue = []
-                elif (
-                    user_id == root_id
-                ):  # else, we want to have first massege of response
-                    queue = []
-                    queue.append(user_id)
-                    queue.append(date)
-            else:  # if queue is empty
-                if (
-                    user_id != root_id
-                ):  # we don't want to have other masseges from non root user, exept last message
-                    continue
-                else:  # save message details from root
-                    queue.append(user_id)
-                    queue.append(date)
 
-        # create data frame with user_id(sender not root), time_send, time_responde, delta times
-        df = pd.DataFrame(
+            # if we have message from user not root
+            if sender is not None:
+                # if user is root, calculate delta times and save to temp. dict
+                if user_id == root_id:
+                    diff = datetime.strptime(
+                        date, "%Y-%m-%d %H:%M:%S"
+                    ) - datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+
+                    if 0 <= diff.days < 1:
+                        delta = str(diff)
+                        key = (sender, last_time)
+                        df_dict[key] = (date, delta)
+                    sender = None
+
+            if user_id != root_id:
+                sender = user_id
+                last_time = date
+
+        return pd.DataFrame(
             [(key[0], key[1], value[0], value[1]) for key, value in df_dict.items()],
-            columns=["sender", "time_send", "time_responde", "delta_times"],
+            columns=["sender", "time_send", "time_responde", "delta"],
         )
-        return df
 
 
 class MostCommonEmoji(Query):
