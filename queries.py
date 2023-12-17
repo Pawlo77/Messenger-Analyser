@@ -96,7 +96,7 @@ class MostCommonStrings(Query):
                 encode(key[0], *encode_user(key[0], users), key[1], value)
                 for key, value in conuts.items()
             ],
-            columns=["user_id", "name", "gender", "sequence of strings", "count"],
+            columns=["user_id", "name", "gender", "sequence_of_strings", "count"],
         )
         df = df.sort_values("count", ascending=False)
         return df
