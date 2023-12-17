@@ -69,6 +69,13 @@ ARGUMENTS = (
         False,
         str,
     ),
+    (
+        "words_count",
+        2,
+        "How long a sequence of words we want to count for the query MostCommonStrings, 1-4 - posiblilities",
+        False,
+        int,
+    )
 )
 
 

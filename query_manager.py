@@ -6,18 +6,18 @@ from typing import List, Any
 from setup import Config
 from queries import (
     CountMessagesQuery,
-    MessagesOnTime,
-    Top10withoutGroups,
     MostCommonStrings,
+    TimeToResponde,
+    MostCommonEmoji
 )
 from helpers import Query
 
 
 QUERIES = (
     CountMessagesQuery(),
-    MessagesOnTime(),
-    Top10withoutGroups(),
     MostCommonStrings(),
+    TimeToResponde(),
+    MostCommonEmoji()
 )
 
 
