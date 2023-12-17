@@ -27,7 +27,7 @@ ARGUMENTS = (
         str,
     ),
     (
-        "n_threds",
+        "n_threads",
         8,
         "Number of threads to be used for processing. Defaults to 8.",
         False,

@@ -32,7 +32,7 @@ options:
   --output_dir_path OUTPUT_DIR_PATH
                         Directory to which output should be written. Defaults
                         to 'output' directory in setup's folder.
-  --n_threds N_THREDS   Number of threads to be used for processing. Defaults
+  --n_threads N_THREADS   Number of threads to be used for processing. Defaults
                         to 8.
   --prefix PREFIX       Prefix added to each identifier. Defaults to '0'.
   --default_language DEFAULT_LANGUAGE

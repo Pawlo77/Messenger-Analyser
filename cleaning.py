@@ -290,7 +290,7 @@ def clean():
     CleaningExecutor.get_messages_files()
 
     threads = []
-    for i in range(Config.get("n_threds")):
+    for i in range(Config.get("n_threads")):
         thread = threading.Thread(
             target=CleaningExecutor.clean_files, name=f"Thread-{i+1}"
         )
