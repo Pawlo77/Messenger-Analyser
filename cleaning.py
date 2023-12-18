@@ -201,11 +201,8 @@ class CleaningExecutor:
         res = [None] * len(messages)
         for i, message in enumerate(messages):
             key, participants_map = CleaningExecutor.get_participant_key(
-                message.get("sender_name", ""), participants_map, warn=True
+                encode(message.get("sender_name", ""))[0], participants_map, warn=True
             )
-
-            if isinstance(key, tuple):
-                print(key)
 
             res[i] = (
                 key,
