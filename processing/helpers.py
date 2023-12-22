@@ -126,7 +126,7 @@ class GenderPredictorForPolishNames:
         )
         self.names = {
             name.lower(): gender
-            for name, gender in zip(self.names.name, self.names.gender)
+            for name, gender in zip(self.names.imie, self.names.plec)
         }
 
     def predict_gender(self, name: str) -> str:
