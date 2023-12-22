@@ -27,7 +27,8 @@ class CountMessagesQuery(Query):
         counts = {}
         for conversation_id, user_id, message, timestamp in data:
             date = self.get_date(timestamp)
-            
+            if message == "MetaCommand":
+                continue
 
             key = (conversation_id, user_id, date)
             if key in counts.keys():
@@ -154,8 +155,10 @@ class TimeToResponde(Query):
         df_dict = {}
         root_id = Config.get("user_id")
         for line in data:
-            conversation_id, user_id, date = line[0], line[1],  line[3]
+            conversation_id, user_id, messege, date = line[0], line[1],  line[2], line[3]
             if len(groups.get(conversation_id)) > 2:
+                continue
+            if messege == "MetaCommand":
                 continue
             # responde time
             if sender != None: # if we have message from user not root
@@ -202,6 +205,8 @@ class MostCommonEmoji(Query):
         emojis = []
         for conversation_id, user_id, message, timestamp in data:
             if Config.get("user_id") != "all" and user_id != Config.get("user_id"):
+                continue
+            if message == "MetaCommand":
                 continue
 
             date = self.get_date(timestamp)
