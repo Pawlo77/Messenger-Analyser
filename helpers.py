@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 import warnings
@@ -119,15 +120,16 @@ class Query:
 
 
 class GenderPredictorForPolishNames:
-    def __init__(self):
+    def __init__(self) -> None:
         self.names = pd.read_excel(
             os.path.join(os.path.dirname(__file__), "resources", "imiona_polskie.xlsx")
         )
         self.names = {
-            imie.lower(): plec for imie, plec in zip(self.names.imie, self.names.plec)
+            name.lower(): gender
+            for name, gender in zip(self.names.name, self.names.gender)
         }
 
-    def predict_gender(self, name):
+    def predict_gender(self, name: str) -> str:
         gender = self.names.get(name.lower(), "unknown")
         if gender == "unknown" and name.endswith("a"):
             return "female"
@@ -152,18 +154,72 @@ class Counter:
     def get_id(self) -> int:
         with self.lock:
             return f"{Config.get('prefix')}_{next(self.counter)}"
+
+
 class BannedWords:
-    def __init__(self) -> None:
-        self.bannable = ["ustawiono nick u\u00c5\u00bcytownika", "ustawi\u00c5\u0082a nick", "ustawi\u00c5\u0082 nick", "ustawi\u00c5\u0082 Tw\u00c3\u00b3j nick", "ustawi\u00c5\u0082a Tw\u00c3\u00b3j nick",
-                         "ustawi\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) szybk\u00c4\u0085 reakcj\u00c4\u0099", "ustawi\u00c5\u0082(a) szybk\u00c4\u0085 reakcj\u00c4\u0099", "ustawi\u00c5\u0082 szybk\u00c4\u0085 reakcj\u00c4\u0099", "ustawi\u00c5\u0082a szybk\u00c4\u0085 reakcj\u00c4\u0099",
-                         "zmieni\u00c5\u0082(a) zdj\u00c4\u0099cie grupy", "zmieni\u00c5\u0082 zdj\u00c4\u0099cie grupy", "zmieni\u00c5\u0082a zdj\u00c4\u0099cie grupy", "zmieni\u00c5\u0082e\u00c5\u009b zdj\u00c4\u0099cie grupy", "zmieni\u00c5\u0082a\u00c5\u009b zdj\u00c4\u0099cie grupy",
-                         "zmieni\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) zdj\u00c4\u0099cie grupy", "doda\u00c5\u0082 Ci\u00c4\u0099 do grupy", "doda\u00c5\u0082(a) Ci\u00c4\u0099 do grupy", "doda\u00c5\u0082a Ci\u00c4\u0099 do grupy", r"doda\u00c5\u0082 (.+?) do grupy",
-                         r"doda\u00c5\u0082a (.+?) do grupy", r"doda\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) (.+?) do grupy", r"doda\u00c5\u0082e\u00c5\u009b (.+?) do grupy", r"doda\u00c5\u0082a\u00c5\u009b (.+?) do grupy", "opusci\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) grup\u00c4\u0099", 
-                         "opu\u00c5\u009bci\u00c5\u0082(a) grup\u00c4\u0099", "opu\u00c5\u009bci\u00c5\u0082 grup\u00c4\u0099", "opu\u00c5\u009bci\u00c5\u0082a grup\u00c4\u0099", "usun\u00c4\u0085\u00c5\u0082(\u00c4\u0099\u00c5\u0082a) Ci\u00c4\u0099 z grupy", "usun\u00c4\u0085\u00c5\u0082 Ci\u00c4\u0099 z grupy", "usun\u00c4\u0099\u00c5\u0082a Ci\u00c4\u0099", "zosta\u00c5\u0082(a) usuni\u00c4\u0099ty(a)",
-                         "usun\u00c4\u0085\u00c5\u0082 u\u00c5\u00bcytkownika", "usun\u00c4\u0099\u00c5\u0082a u\u00c5\u00bcytkonika", r"usun\u00c4\u0085\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) (.+?) z grupy", r"usun\u00c4\u0085\u00c5\u0082e\u00c5\u009b (.+?) z grupy", r"usun\u00c4\u0099\u00c5\u0082a\u00c5\u009b (.+?) z grupy", 
-                         r"usun\u00c4\u0085\u00c5\u0082 (.+?) z grupy", r"usun\u00c4\u0099\u00c5\u0082a (.+?) z grupy", "zmieni\u00c5\u0082 motyw", "zmieni\u00c5\u0082a motyw", "zmieni\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) motyw", "zmieni\u00c5\u0082e\u00c5\u009b motyw",
-                         "zmieni\u00c5\u0082a\u00c5\u009b motyw", "dzwoni\u00c5\u0082 do Ciebie", "Zadzwoni\u00c5\u0082e\u00c5\u009b do", "Zadzwoni\u00c5\u0082a\u00c5\u009b do", "masz nieodebrane po\u00c5\u0082\u00c4\u0085czenie od", "ta ankieta nie jest ju\u00c5\u00bc dost\u00c4\u0099pna",
-                         "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082 do rozmowy", "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082a do rozmowy", "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082e\u00c5\u009b do rozmowy", "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082a\u00c5\u009b do rozmowy", "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) do rozmowy",
-                         "rozpocz\u00c4\u0085\u00c5\u0082 rozmow\u00c4\u0099", "rozpocz\u00c4\u0099\u00c5\u0082a rozmow\u00c4\u0099", "rozpocz\u00c4\u0085\u00c5\u0082e\u00c5\u009b rozmow\u00c4\u0099", "rozpocz\u00c4\u0085\u00c5\u0082e\u00c5\u009b rozmow\u00c4\u0099"]
-    def get_bannable(self):
-        return self.bannable
+    BANNED_PHRASES = [
+        "ustawiono nick u\u00c5\u00bcytownika",
+        "ustawi\u00c5\u0082a nick",
+        "ustawi\u00c5\u0082 nick",
+        "ustawi\u00c5\u0082 Tw\u00c3\u00b3j nick",
+        "ustawi\u00c5\u0082a Tw\u00c3\u00b3j nick",
+        "ustawi\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) szybk\u00c4\u0085 reakcj\u00c4\u0099",
+        "ustawi\u00c5\u0082(a) szybk\u00c4\u0085 reakcj\u00c4\u0099",
+        "ustawi\u00c5\u0082 szybk\u00c4\u0085 reakcj\u00c4\u0099",
+        "ustawi\u00c5\u0082a szybk\u00c4\u0085 reakcj\u00c4\u0099",
+        "zmieni\u00c5\u0082(a) zdj\u00c4\u0099cie grupy",
+        "zmieni\u00c5\u0082 zdj\u00c4\u0099cie grupy",
+        "zmieni\u00c5\u0082a zdj\u00c4\u0099cie grupy",
+        "zmieni\u00c5\u0082e\u00c5\u009b zdj\u00c4\u0099cie grupy",
+        "zmieni\u00c5\u0082a\u00c5\u009b zdj\u00c4\u0099cie grupy",
+        "zmieni\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) zdj\u00c4\u0099cie grupy",
+        "doda\u00c5\u0082 Ci\u00c4\u0099 do grupy",
+        "doda\u00c5\u0082(a) Ci\u00c4\u0099 do grupy",
+        "doda\u00c5\u0082a Ci\u00c4\u0099 do grupy",
+        r"doda\u00c5\u0082 (.+?) do grupy",
+        r"doda\u00c5\u0082a (.+?) do grupy",
+        r"doda\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) (.+?) do grupy",
+        r"doda\u00c5\u0082e\u00c5\u009b (.+?) do grupy",
+        r"doda\u00c5\u0082a\u00c5\u009b (.+?) do grupy",
+        "opusci\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) grup\u00c4\u0099",
+        "opu\u00c5\u009bci\u00c5\u0082(a) grup\u00c4\u0099",
+        "opu\u00c5\u009bci\u00c5\u0082 grup\u00c4\u0099",
+        "opu\u00c5\u009bci\u00c5\u0082a grup\u00c4\u0099",
+        "usun\u00c4\u0085\u00c5\u0082(\u00c4\u0099\u00c5\u0082a) Ci\u00c4\u0099 z grupy",
+        "usun\u00c4\u0085\u00c5\u0082 Ci\u00c4\u0099 z grupy",
+        "usun\u00c4\u0099\u00c5\u0082a Ci\u00c4\u0099",
+        "zosta\u00c5\u0082(a) usuni\u00c4\u0099ty(a)",
+        "usun\u00c4\u0085\u00c5\u0082 u\u00c5\u00bcytkownika",
+        "usun\u00c4\u0099\u00c5\u0082a u\u00c5\u00bcytkonika",
+        r"usun\u00c4\u0085\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) (.+?) z grupy",
+        r"usun\u00c4\u0085\u00c5\u0082e\u00c5\u009b (.+?) z grupy",
+        r"usun\u00c4\u0099\u00c5\u0082a\u00c5\u009b (.+?) z grupy",
+        r"usun\u00c4\u0085\u00c5\u0082 (.+?) z grupy",
+        r"usun\u00c4\u0099\u00c5\u0082a (.+?) z grupy",
+        "zmieni\u00c5\u0082 motyw",
+        "zmieni\u00c5\u0082a motyw",
+        "zmieni\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) motyw",
+        "zmieni\u00c5\u0082e\u00c5\u009b motyw",
+        "zmieni\u00c5\u0082a\u00c5\u009b motyw",
+        "dzwoni\u00c5\u0082 do Ciebie",
+        "Zadzwoni\u00c5\u0082e\u00c5\u009b do",
+        "Zadzwoni\u00c5\u0082a\u00c5\u009b do",
+        "masz nieodebrane po\u00c5\u0082\u00c4\u0085czenie od",
+        "ta ankieta nie jest ju\u00c5\u00bc dost\u00c4\u0099pna",
+        "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082 do rozmowy",
+        "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082a do rozmowy",
+        "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082e\u00c5\u009b do rozmowy",
+        "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082a\u00c5\u009b do rozmowy",
+        "do\u00c5\u0082\u00c4\u0085czy\u00c5\u0082e\u00c5\u009b(a\u00c5\u009b) do rozmowy",
+        "rozpocz\u00c4\u0085\u00c5\u0082 rozmow\u00c4\u0099",
+        "rozpocz\u00c4\u0099\u00c5\u0082a rozmow\u00c4\u0099",
+        "rozpocz\u00c4\u0085\u00c5\u0082e\u00c5\u009b rozmow\u00c4\u0099",
+        "rozpocz\u00c4\u0085\u00c5\u0082e\u00c5\u009b rozmow\u00c4\u0099",
+    ]
+
+    @staticmethod
+    def is_banned(message: str) -> bool:
+        for to_delete in BannedWords.BANNED_PHRASES:
+            if re.search(re.escape(to_delete).lower(), message.lower()):
+                return True
+        return False

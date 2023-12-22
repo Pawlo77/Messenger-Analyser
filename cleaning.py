@@ -24,7 +24,6 @@ class CleaningExecutor:
     TITLES = Counter(LOCK)
     GENDER = gender.Detector(case_sensitive=False)
     GENDER_POLISH = GenderPredictorForPolishNames()
-    BANNED = BannedWords()
     LEMMATIZER_EN = spacy.load("en_core_web_sm")
     LEMMATIZER_PL = spacy.load("pl_core_news_sm")
     TRANSLATION_TABLE = str.maketrans("", "", string.punctuation)
@@ -118,14 +117,13 @@ class CleaningExecutor:
     @staticmethod
     def get_gender(name: str) -> str:
         with CleaningExecutor.LOCK:
-            gender = CleaningExecutor.GENDER_POLISH.predict_gender(name)       
+            gender = CleaningExecutor.GENDER_POLISH.predict_gender(name)
             if gender == "unknown":
                 gender = CleaningExecutor.GENDER.get_gender(name)
                 if gender == "mostly_male":
                     return "male"
                 elif gender == "mostly_female":
                     return "female"
-
 
             return gender
 
@@ -203,22 +201,13 @@ class CleaningExecutor:
             key, participants_map = CleaningExecutor.get_participant_key(
                 encode(message.get("sender_name", ""))[0], participants_map, warn=True
             )
-            banned = False
-            for to_delete in CleaningExecutor.BANNED.get_bannable():
-                if re.search(re.escape(to_delete).lower(), message.lower()):
-                    banned = True
-                    res[i] = (
-                    key,
-                    "MetaCommand",
-                    message.get("timestamp_ms", None),
-                    )
-                    break              
-            if not banned:
-                res[i] = (
-                    key,
-                    CleaningExecutor.clean_content(encode(message.get("content", ""))[0]),
-                    message.get("timestamp_ms", None),
-                )         
+            res[i] = (
+                key,
+                CleaningExecutor.clean_content(encode(message.get("content", ""))[0])
+                if not BannedWords.is_banned(message)
+                else "MetaCommand",
+                message.get("timestamp_ms", None),
+            )
         return res
 
     @staticmethod
