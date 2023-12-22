@@ -1,12 +1,10 @@
 import emoji
 import pandas as pd
 
-from datetime import datetime
-
 from typing import Any, List
 from setup import Config
 from helpers import Query, encode_user, encode_group, encode
-
+from datetime import datetime
 
 class CountMessagesQuery(Query):
     """
@@ -29,6 +27,9 @@ class CountMessagesQuery(Query):
         counts = {}
         for conversation_id, user_id, message, timestamp in data:
             date = self.get_date(timestamp)
+            if message == "MetaCommand":
+                continue
+
             key = (conversation_id, user_id, date)
             if key in counts.keys():
                 for i, num in enumerate(self.min_messages_num):
@@ -58,7 +59,7 @@ class CountMessagesQuery(Query):
                 "is_group",
                 "participants_num",
             ]
-            + [f"min_messages={num}" for num in self.min_messages_num],
+            + [f"min_messages_is_{num}" for num in self.min_messages_num],
         )
 
 
@@ -83,7 +84,8 @@ class MostCommonStrings(Query):
 
             if Config.get("user_id") != "all" and user_id != Config.get("user_id"):
                 continue
-
+            if message == "MetaCommand":
+                continue
             for i in range(len(message) - how_many_words + 1):
                 words_streak = " ".join(message[i : i + how_many_words])
                 key = (user_id, words_streak)
@@ -102,19 +104,30 @@ class MostCommonStrings(Query):
         )
         df = df.sort_values("count", ascending=False)
         return df
-
+{"zadzwonić być": "",
+ "regex  odebrać": "",
+ "odebrac polaczyc": "",
+ "ustawic nick": "",
+ "ustawić emoji": "",
+ "szybką reakcja": "",
+"udostępniyć aplikacja":"",
+"udostepnic aplikacja": "",
+"nadałeśaś grupa nazwa": "",
+"zostać usuniętya grupa": "",
+"dzwonić siebie nawzajem": "",
+"dodać być uczestnik grupa": "",
+"uzytkownik": "",
+"opuściłeśaś grupa":"",
+"opuścić grupa": ""
+}
 
 class TimeToResponde(Query):
     """
     Returns data frame with columns:
-    sender - user_id, not root - who sent the message
+    sender - user_id, not root,
     time_send - time that user sent last massege before response
     time_response - time that root sent first message on response
     delta_times - difference between last message sent to first response
-
-    In other words:
-    // Whom you replied to - when someone wrote - when you replied - how soon you replied //
-    from perspective of --user_id
     """
 
     def __init__(self) -> None:
@@ -126,8 +139,6 @@ class TimeToResponde(Query):
 
     def execute(self, data: List[tuple], **kwargs) -> Any:
         groups = self.get_from_kw(kwargs, "groups", None)
-        root_id = Config.get("user_id")
-        assert root_id != "all", f"Query {self.id} requires specified --user_id flag."
 
         data = [
             [conversation_id, user_id, message, self.get_date(timestamp)]
@@ -139,37 +150,43 @@ class TimeToResponde(Query):
                 line[3],
             )
         )
-
         sender = None
         last_time = None
         df_dict = {}
+        root_id = Config.get("user_id")
         for line in data:
-            conversation_id, user_id, date = line[0], line[1], line[3]
-            if len(groups[conversation_id]) > 2:
+            conversation_id, user_id, messege, date = line[0], line[1],  line[2], line[3]
+            if len(groups.get(conversation_id)) > 2:
                 continue
-
-            # if we have message from user not root
-            if sender is not None:
-                # if user is root, calculate delta times and save to temp. dict
-                if user_id == root_id:
-                    diff = datetime.strptime(
-                        date, "%Y-%m-%d %H:%M:%S"
-                    ) - datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
-
+            if messege == "MetaCommand":
+                continue
+            # responde time
+            if sender != None: # if we have message from user not root
+                if user_id != sender and user_id == root_id: # if user is root, calculate delta times and save to temp. dict
+                    diff = datetime.strptime(date, "%Y-%m-%d %H:%M:%S") - datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
                     if 0 <= diff.days < 1:
                         delta = str(diff)
-                        key = (sender, last_time)
-                        df_dict[key] = (date, delta)
+                        key = sender, last_time
+                        df_dict[key] = date, delta
                     sender = None
-
-            if user_id != root_id:
-                sender = user_id
-                last_time = date
-
-        return pd.DataFrame(
+                    last_time = None
+                elif user_id != root_id: # else, we want to have last massege of user            
+                    last_time = date
+            else: # if queue is empty
+                if user_id == root_id: # we don't want to have other masseges from root user, exept first response message
+                    continue
+                else:  # save message details from non root
+                    sender = user_id
+                    last_time = date
+         
+        # create data frame with user_id(sender not root), time_send, time_responde, delta times
+        df = pd.DataFrame(
             [(key[0], key[1], value[0], value[1]) for key, value in df_dict.items()],
             columns=["sender", "time_send", "time_responde", "delta"],
         )
+        
+        return df
+        
 
 
 class MostCommonEmoji(Query):
@@ -188,6 +205,8 @@ class MostCommonEmoji(Query):
         emojis = []
         for conversation_id, user_id, message, timestamp in data:
             if Config.get("user_id") != "all" and user_id != Config.get("user_id"):
+                continue
+            if message == "MetaCommand":
                 continue
 
             date = self.get_date(timestamp)
