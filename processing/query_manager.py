@@ -1,6 +1,8 @@
 import os
+import logging
 import json
 
+from faker import Faker
 from typing import List, Any
 
 from setup import Config
@@ -11,6 +13,7 @@ from queries import (
     MostCommonEmoji,
 )
 from helpers import Query
+from cleaning import CleaningExecutor
 
 
 QUERIES = (
@@ -40,6 +43,7 @@ class QueryExecutor:
         self.kwargs = {
             "users_map": QueryExecutor.load(self.users_ids_file_path),
             "conversations_map": QueryExecutor.load(self.conversations_ids_file_path),
+            "faked_users": MyFaker.get_fake_names(),
         }
 
         # check if it is exacly data format we expect, ie produced by our cleaner:
@@ -120,3 +124,35 @@ class QueryExecutor:
 def query(data_file_path: str = None, *args: List[int], **kwargs):
     executor = QueryExecutor(data_file_path)
     executor(*args, **kwargs)
+
+
+class MyFaker:
+    @staticmethod
+    def get_fake_names(users_file_path: str = None) -> dict:
+        faked_path = QueryExecutor.get_path(users_file_path, "users_faked")
+        if os.path.exists(faked_path):
+            logging.info("Faker:faked users are already generated")
+            return QueryExecutor.load(faked_path)
+
+        fake = Faker("pl_PL")
+        path = QueryExecutor.get_path(users_file_path, "users")
+        names = QueryExecutor.load(path)
+
+        fake_names = {}
+        taken_names = set()
+        for name, (user_id, gender) in names.items():
+            if user_id == Config.get("user_id"):
+                fake_names[user_id] = name
+                taken_names.add(name)
+                continue
+
+            name = fake.first_name() + " " + fake.last_name()
+            while name in taken_names and CleaningExecutor.get_gender(name) != gender:
+                name = fake.first_name() + " " + fake.last_name()
+            taken_names.add(name)
+            fake_names[user_id] = name
+
+        CleaningExecutor.save_json(
+            fake_names, Config.get("prefix") + "_" + "users_faked.json"
+        )
+        return fake_names

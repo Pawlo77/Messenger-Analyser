@@ -24,6 +24,7 @@ class CountMessagesQuery(Query):
     def execute(self, data: List[tuple], **kwargs) -> Any:
         users = self.get_from_kw(kwargs, "users_map", None)
         groups = self.get_from_kw(kwargs, "groups", None)
+        faked_users = self.get_from_kw(kwargs, "faked_users", None)
 
         counts = {}
         for conversation_id, user_id, message, timestamp in data:
@@ -46,7 +47,7 @@ class CountMessagesQuery(Query):
             [
                 encode(
                     *key,
-                    *encode_user(key[1], users),
+                    *encode_user(key[1], users, faked_users=faked_users),
                     *encode_group(key[0], groups),
                     *value,
                 )
@@ -79,6 +80,7 @@ class MostCommonStrings(Query):
     def execute(self, data: List[tuple], **kwargs) -> Any:
         users = self.get_from_kw(kwargs, "users_map", None)
         how_many_words = Config.get("words_count")
+        faked_users = self.get_from_kw(kwargs, "faked_users", None)
 
         conuts = {}
         for line in data:
@@ -100,7 +102,12 @@ class MostCommonStrings(Query):
 
         df = pd.DataFrame(
             [
-                encode(key[0], *encode_user(key[0], users), key[1], value)
+                encode(
+                    key[0],
+                    *encode_user(key[0], users, faked_users=faked_users),
+                    key[1],
+                    value,
+                )
                 for key, value in conuts.items()
             ],
             columns=["user_id", "name", "gender", "sequence_of_strings", "count"],
@@ -127,6 +134,7 @@ class TimeToResponde(Query):
 
     def execute(self, data: List[tuple], **kwargs) -> Any:
         groups = self.get_from_kw(kwargs, "groups", None)
+        faked_users = self.get_from_kw(kwargs, "faked_users", None)
 
         data = [
             [conversation_id, user_id, message, self.get_date(timestamp)]
@@ -138,7 +146,8 @@ class TimeToResponde(Query):
                 line[3],
             )
         )
-        sender = None
+
+        last_user_id = None
         last_time = None
         df_dict = {}
         root_id = Config.get("user_id")
@@ -148,26 +157,48 @@ class TimeToResponde(Query):
                 continue
 
             # we have previous message from not-root user
+            # or if user_id == "all" from another user
             # and now user sent message - calculate time delta
-            if sender is not None and user_id == root_id:
+            if last_user_id is not None and (
+                (root_id == "all" and last_user_id != user_id) or user_id == root_id
+            ):
                 diff = datetime.strptime(date, "%Y-%m-%d %H:%M:%S") - datetime.strptime(
                     last_time, "%Y-%m-%d %H:%M:%S"
                 )
 
                 if 0 <= diff.days < 1:
                     delta = str(diff)
-                    key = (sender, last_time)
+                    key = (last_user_id, user_id, last_time)
                     df_dict[key] = (date, delta)
-                sender = None
+                last_user_id = None
 
             if user_id != root_id:
-                sender = user_id
+                last_user_id = user_id
                 last_time = date
 
         # create data frame with user_id(sender not root), time_send, time_responde, delta times
         df = pd.DataFrame(
-            [(key[0], key[1], value[0], value[1]) for key, value in df_dict.items()],
-            columns=["sender", "time_send", "time_responde", "delta"],
+            [
+                (
+                    key[0],
+                    key[1],
+                    faked_users[key[0]],
+                    faked_users[key[1]],
+                    key[2],
+                    value[0],
+                    value[1],
+                )
+                for key, value in df_dict.items()
+            ],
+            columns=[
+                "responded_to_id",
+                "responded_by_id",
+                "responded_to_name",
+                "responded_by_name",
+                "time_send",
+                "time_responde",
+                "delta",
+            ],
         )
 
         return df
@@ -185,6 +216,7 @@ class MostCommonEmoji(Query):
     def execute(self, data: List[tuple], **kwargs) -> Any:
         users = self.get_from_kw(kwargs, "users_map", None)
         groups = self.get_from_kw(kwargs, "groups", None)
+        faked_users = self.get_from_kw(kwargs, "faked_users", None)
 
         emojis = []
         for conversation_id, user_id, message, timestamp in data:
@@ -201,7 +233,7 @@ class MostCommonEmoji(Query):
                     emojis.append(
                         encode(
                             user_id,
-                            *encode_user(user_id, users),
+                            *encode_user(user_id, users, faked_users=faked_users),
                             encode_group(conversation_id, groups)[0],
                             date,
                             message[i],

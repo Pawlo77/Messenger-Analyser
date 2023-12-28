@@ -5,7 +5,7 @@ import logging
 import warnings
 import pandas as pd
 
-from typing import Any, List
+from typing import Any, List, Tuple
 from itertools import count
 from datetime import datetime
 
@@ -25,11 +25,22 @@ def encode(*args: List[Any]) -> List[Any]:
 
 
 # returns (name, gender)
-encode_user = (
-    lambda user_id, users: users[user_id]
-    if user_id in users.keys()
-    else ("unknown", "unknown")
-)
+def encode_user(
+    user_id: str,
+    users: dict,
+    faked_users: dict = None,
+    fake_name: bool = True,
+) -> Tuple[str, str]:
+    if fake_name:
+        assert faked_users is not None, f"Faking name requires fake_users dict."
+
+    name = users[user_id] if user_id in users.keys() else ("unknown", "unknown")
+
+    if name[0] != "unknown" and fake_name:
+        name[0] = faked_users[user_id] if user_id in faked_users.keys() else "unknown"
+    return name
+
+
 # returns (is_group, number_of_participants)
 encode_group = (
     lambda conversation_id, groups: (
