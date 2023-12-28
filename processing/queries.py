@@ -196,7 +196,7 @@ class TimeToResponde(Query):
                 "responded_to_name",
                 "responded_by_name",
                 "time_send",
-                "time_responde",
+                "time_responded",
                 "delta",
             ],
         )
