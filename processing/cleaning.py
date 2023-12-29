@@ -202,10 +202,10 @@ class CleaningExecutor:
                 encode(message.get("sender_name", ""))[0], participants_map, warn=True
             )
 
-            content = encode(message.get("content", ""))[0]
+            content = message.get("content", "")
             res[i] = (
                 key,
-                CleaningExecutor.clean_content(content)
+                CleaningExecutor.clean_content(encode(content)[0])
                 if not BannedWords.is_banned(content)
                 else "MetaCommand",
                 message.get("timestamp_ms", None),
