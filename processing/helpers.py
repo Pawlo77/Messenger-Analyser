@@ -17,8 +17,8 @@ def encode(*args: List[Any]) -> List[Any]:
     for i in range(len(args)):
         try:
             if isinstance(args[i], str):
-                args[i] = args[i].encode("latin-1", "ignore").decode("utf-8", "ignore")
-        except UnicodeDecodeError as e:
+                args[i] = args[i].encode("latin-1").decode("utf-8")
+        except Exception as e:
             warnings.warn(f"Could not encode: {args[i]} - {e}")
 
     return args

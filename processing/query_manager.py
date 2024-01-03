@@ -52,7 +52,7 @@ class QueryExecutor:
         ), "Wrong data format (check expected format produced by CleaningExecutor)"
         for l in self.data:
             assert (
-                len(l) >= 3 and isinstance(l[-2], list) and isinstance(l[-1], int)
+                len(l) >= 3 and isinstance(l[-2], list | str) and isinstance(l[-1], int)
             ), "Wrong data format (check expected format produced by CleaningExecutor)"
         assert isinstance(self.kwargs["users_map"], dict), "Users map should be dict."
         assert isinstance(
