@@ -1,0 +1,1 @@
+https://pipikiddomisiu.shinyapps.io/projekt2_shiny/
